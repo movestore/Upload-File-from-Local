@@ -1,4 +1,7 @@
 {
-    "sdk": "MoveApps R SDK",
-    "year": 2006
+    "time_col": "timestamp",
+    "track_id_col": "deployment.id",
+    "track_attr": "track,tag.id",
+    "coords": "location.long,location.lat",
+    "crss": "WGS84"
 }
