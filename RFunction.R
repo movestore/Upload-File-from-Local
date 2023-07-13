@@ -1,7 +1,6 @@
 library('move2')
 library('move')
 
-# Showcase injecting app setting (parameter `year`)
 rFunction = function(data=NULL, time_col="timestamp", track_id_col="deployment.id", track_attr="",coords="location.long,location.lat",crss="WGS84", ...) {
   
   # rds file # works :)
