@@ -18,7 +18,7 @@ rFunction = function(data=NULL, time_col="timestamp", track_id_col="deployment_i
   
   # make names for new1
   names(new1) <- make.names(names(new1),allow_=TRUE)
-  names(track_id(new1)) <- make.names(names(track_id(new1)),allow_=TRUE)
+  track_id(new1) <- make.names(track_id(new1),allow_=TRUE)
   
   # csv file
   fileName2 <- paste0(getAppFilePath("csvFile_ID"), "data.csv") #default is NULL
@@ -47,7 +47,7 @@ rFunction = function(data=NULL, time_col="timestamp", track_id_col="deployment_i
 
   # make names for new2
   names(new2) <- make.names(names(new2),allow_=TRUE)
-  names(track_id(new2)) <- make.names(names(track_id(new2)),allow_=TRUE)
+  mt_track_id(new2) <- make.names(mt_track_id(new2),allow_=TRUE)
   
   # here is where the object data is needed
   if (!exists("data") | is.null(data) | length(data)==0) #here need to check what is possible (Clemens)
