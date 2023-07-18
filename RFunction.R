@@ -1,7 +1,7 @@
 library('move2')
 library('move')
 
-rFunction = function(data=NULL, time_col="timestamp", track_id_col="deployment.id", track_attr="",coords="location.long,location.lat",crss="WGS84", ...) {
+rFunction = function(data=NULL, time_col="timestamp", track_id_col="deployment_id", track_attr="",coords="location_long,location_lat",crss="WGS84", ...) {
   
   # rds file # works :)
   fileName1 <- paste0(getAppFilePath("rdsFile_ID"), "data.rds") #default is NULL
@@ -15,6 +15,10 @@ rFunction = function(data=NULL, time_col="timestamp", track_id_col="deployment.i
     new1 <- mt_as_move2(new1)
     logger.info("Uploaded rds file containes a moveStack object that is transformed to move2.")
   }
+  
+  # make names for new1
+  names(new1) <- make.names(names(new1),allow_=TRUE)
+  names(track_id(new1)) <- make.names(names(track_id(new1)),allow_=TRUE)
   
   # csv file
   fileName2 <- paste0(getAppFilePath("csvFile_ID"), "data.csv") #default is NULL
@@ -41,6 +45,10 @@ rFunction = function(data=NULL, time_col="timestamp", track_id_col="deployment.i
   # transform data.frame to move2 object
   if (!is.null(df2)) new2 <- mt_as_move2(df2,time_column=time_col,track_id_column=track_id_col,track_attributes=tr_attr,coords=coo,crs=crss,na.fail=FALSE) else new2 <- NULL #na.fail ok?
 
+  # make names for new2
+  names(new2) <- make.names(names(new2),allow_=TRUE)
+  names(track_id(new2)) <- make.names(names(track_id(new2)),allow_=TRUE)
+  
   # here is where the object data is needed
   if (!exists("data") | is.null(data) | length(data)==0) #here need to check what is possible (Clemens)
   {
