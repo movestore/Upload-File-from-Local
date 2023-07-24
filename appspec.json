@@ -3,37 +3,56 @@
     {
       "id": "time_col",
       "name": "Name of the time column",
-      "description": "Indicate which column to use as the timestamp column for the transformation of the table data to a move2 object. Take care to enter the name in the correct spelling, see the data summary of the preceding App.",
+      "description": "Indicate which column to use as the timestamp column for the transformation of the table data to a move2 object. Take care to enter the name with the correct spelling. The expected timestamp format is 'yyyy-mm-dd HH:MM:SS' and in UTC timezone.",
       "defaultValue": "timestamp",
       "type": "STRING"
     },
     {
       "id": "track_id_col",
       "name": "Name of the track ID column",
-      "description": "Indicate which column to use as the track ID column for transforamtion of the table data to a move2 object. Take care that duplicated timestamps in a track are not allowed. Beware of possible issues if you have reused tags on different animals or used several tags on the same animal. Then, the use of deployment.id, as in the default, can be useful. Else, individual.local.identifier might be preferred. Take care to enter the attributes' names in the correct spelling, see the data summary of the preceding App.",
-      "defaultValue": "deployment_id",
+      "description": "Indicate which column to use as the track ID column for transforamtion of the table data to a move2 object. Take care to enter the name with the correct spelling. Beware of possible issues if you have reused tags on different animals or used several tags on the same animal. If this is the case, create a column before uploading the data with a unique identifier for each animal and tag combination, e.g. by creating a 'animalName_TagID' column.",
+      "defaultValue": "individual-local-identifier",
       "type": "STRING"
     },
 	    {
       "id": "track_attr",
       "name": "Name of the attributes to become track attributes",
-      "description": "List which of the attributes are pure track attributes, i.e. have only one value per track. This will make working with the data easier in subsequent Apps. Take care to enter the attributes' names in the correct spelling, see the data summary of the preceding App. The names must be separated with comma.",
+      "description": "List which of the attributes are pure track attributes, i.e. have only one value per track. This will make working with the data easier in subsequent Apps. Take care to enter the attributes' names in the correct spelling. The names must be separated with comma.",
       "defaultValue": "",
       "type": "STRING"
     },
 	    {
       "id": "coords",
       "name": "Names of the longigute and latitute columns.",
-      "description": "Provide the names of the two (or three) coordinate columns in your data for correct transformation to a move2 object. The order must be x/longitude followed by y/latitute and optionally z/height. Take care to enter the attributes' names in the correct spelling, see the data summary of the preceding App. The names must be separated with comma.",
-      "defaultValue": "location_long, location_lat",
+      "description": "Provide the names of the two (or three) coordinate columns in your data for correct transformation to a move2 object. The order must be x/longitude followed by y/latitute and optionally z/height. Take care to enter the attributes' names in the correct spelling. The names must be separated with comma.",
+      "defaultValue": "location-long, location-lat",
       "type": "STRING"
     },
 	    {
       "id": "crss",
       "name": "Coordinate reference system.",
-      "description": "Enter the coordinate reference system/ projection to use, either as character, number (EPSG) or a crs object.",
-      "defaultValue": "WGS84",
-      "type": "STRING"
+      "description": "Enter the coordinate reference system/ projection to use as a valid numeric EPSG value. For more info see https://epsg.io/ and https://spatialreference.org/.",
+      "defaultValue": 4326,
+      "type": "INTEGER"
+    },
+    {
+      "id": "duplicates_handling",
+      "name": "Duplicate Handling.",
+      "description": "Records with the same track ID and timestamp can cause errors in subsequent steps of your workflow, for example by requiring an animal to be in two places at the same time, and therefore are not allowed. If present in this data set, the duplicated timestamp entry with least columns containing NAs is retained. As thereafter there can still exist duplicates choose which one to retain:",
+      "type": "RADIOBUTTONS",
+       "defaultValue": "first",
+  "options": [{
+      "value": "first",
+      "displayText": "The first location of each set of duplicates"
+    },
+    {
+      "value": "last",
+      "displayText": "The last location of each set of duplicates"
+    },
+    {
+      "value": "sample",
+      "displayText": "A randomly selected location from set of duplicates"
+    }]
     },
 	    {
       "id": "csvFile_ID",
@@ -50,12 +69,11 @@
   ],
   "dependencies": {
     "R": [
-      {
-        "name": "move"
-      },
-      {
-        "name": "move2"
-      }
+      {"name": "move"},
+      {"name": "move2"},
+      {"name": "vroom"},
+      {"name": "dplyr"},
+      {"name": "sf"}
     ]
   },
   "createsArtifacts": true,
@@ -79,6 +97,7 @@
 	"data access",
 	"rds",
 	"csv"
+	],
   "people": [
     {
      "firstName": "Andrea",
@@ -90,6 +109,16 @@
         "creator"
       ],
       "orcid": "0000-0003-0193-1563",
+      "affiliation": "Max-Planck-Institute of Animal Behavior",
+      "affiliationRor": "https://ror.org/026stee22"
+    },
+    {
+      "firstName": "Anne",
+      "middleInitials": "K",
+      "lastName": "Scharf",
+      "email": "ascharf@ab.mpg.de",
+      "roles": ["author"],
+      "orcid": "0000-0002-3357-8533",
       "affiliation": "Max-Planck-Institute of Animal Behavior",
       "affiliationRor": "https://ror.org/026stee22"
     }
