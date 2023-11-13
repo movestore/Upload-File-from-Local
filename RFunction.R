@@ -9,17 +9,42 @@ library('sf')
 # The expected timestamp format is 'yyyy-mm-dd HH:MM:SS' and in UTC timezone
 # The expected projection is a valid numeric EPSG value. E.g 4326 (EPSG:4326 is lat/lon)
 
-rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individual-local-identifier", track_attr="",coords="location-long,location-lat",crss=4326, duplicates_handling= "first", ...){ 
+
+rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individual-local-identifier", track_attr="",coords="location-long,location-lat",crss=4326, ...){ 
   
   # rds file # works :)
   fileName1 <- paste0(getAppFilePath("rdsFile_ID"), "data.rds") #default is NULL
   logger.info(paste("Reading file", fileName1,"of size:", file.info(fileName1)$size,"."))
   new1 <- readRDS(fileName1)
   
+  if(is.na(crs(fishers))){
+    new1 <- NULL
+    logger.info("The uploaded rds file does not contain coordinate reference system information. This data set cannot be uploaded")
+  }
+  
   if(is.null(new1)){logger.info("No new rds data found.")
   } else { 
     # if .rds is move2
-    if(any(class(new1)=="move2")){logger.info("Uploaded rds file containes a object of class move2")}
+    if(any(class(new1)=="move2")){logger.info("Uploaded rds file containes a object of class move2")
+      ## remove empty locations
+      new1 <- new1[!sf::st_is_empty(new1),]  
+      if(nrow(new1)==0){logger.info("Your uploaded csv file does not contain any location data.")}
+      #### applying the same "cleaning" as for the move2 created from csv below, as someone can create a move2 in R and uploaded to moveapps. This object can contain empty coords, duplicates etc
+      ## remove duplicated timestamps
+      if(!mt_has_unique_location_time_records(new1)){
+        n_dupl <- length(which(duplicated(paste(mt_track_id(new1),mt_time(new1)))))
+        logger.info(paste("Your data has",n_dupl, "duplicated location-time records. We removed here those with less info and then select the first if still duplicated."))
+        ## this piece of code keeps the duplicated entry with least number of columns with NA values
+        new1 <- new1 %>%
+          mutate(n_na = rowSums(is.na(pick(everything())))) %>%
+          arrange(n_na) %>%
+          mt_filter_unique(criterion='first') # this always needs to be "first" because the duplicates get ordered according to the number of columns with NA. 
+      }
+      
+      ## ensure timestamps are ordered within tracks
+      new1 <- dplyr::arrange(new1, mt_track_id(new1), mt_time(new1)) 
+    }
+    
     # if move2 object - fine, else transform moveStack to move2
     if(any(class(new1)=="MoveStack")){
       new1 <- mt_as_move2(new1)
@@ -84,13 +109,12 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
       ## remove duplicated timestamps
       if(!mt_has_unique_location_time_records(new2)){
         n_dupl <- length(which(duplicated(paste(mt_track_id(new2),mt_time(new2)))))
-        logger.info(paste("Your data has",n_dupl, "duplicated location-time records. We removed here those with less info and then select the",duplicates_handling,"if still duplicated."))
-        if(any(c("event_id", "event-id", "event.id") %in% names(new2))){ ## event id is always different for all entries, so excluding it when looking for duplicates
-          new2 <- mt_filter_unique(dplyr::select(new2, -starts_with("event")),criterion="subsets") # hope ignoring all event... columns is ok
-        } else {
-          new2 <- mt_filter_unique(new2,criterion="subsets")
-        }
-        new2 <- mt_filter_unique(new2,criterion=duplicates_handling)
+        logger.info(paste("Your data has",n_dupl, "duplicated location-time records. We removed here those with less info and then select the first if still duplicated."))
+        ## this piece of code keeps the duplicated entry with least number of columns with NA values
+        new2 <- new2 %>%
+          mutate(n_na = rowSums(is.na(pick(everything())))) %>%
+          arrange(n_na) %>%
+          mt_filter_unique(criterion='first') # this always needs to be "first" because the duplicates get ordered according to the number of columns with NA. 
       }
       
       ## ensure timestamps are ordered within tracks
@@ -120,6 +144,10 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
         result <- new1
         logger.info("New data uploaded from rds file, no previous input data.") # works
       } else {
+        if(!st_crs(new1)==st_crs(new2)){
+          new1 <- st_transform(new1, st_crs(new2)) ## or the other way around, not sure which makes more sense...
+          logger.info(paste0("The two data sets to combine have a different projection. One has been re-projected, and now the combined data set is in the '",st_crs(new2)$input,"' projection."))
+        }
         result <- mt_stack(new1,new2,.track_combine="rename")
         logger.info("New data uploaded from rds and csv files, no previous input data. Both data sets are merged.") # works
       }   
@@ -130,14 +158,30 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
         result <- data
         logger.info("No new data in rds or csv files. Returning input data.") # works
       } else {
+        if(!st_crs(data)==st_crs(new2)){
+          new2 <- st_transform(new2, st_crs(data))
+          logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
+        }
         result <- mt_stack(data,new2,.track_combine="rename")
         logger.info("New data uploaded from csv file and appended to input data.") # works
       }
     } else {
       if(is.null(new2)){
+        if(!st_crs(data)==st_crs(new1)){
+          new1 <- st_transform(new1, st_crs(data))
+          logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
+        }
         result <- mt_stack(data,new1,.track_combine="rename")
         logger.info("New data uploaded from rds file and appended to input data.") # works for move1 and move2
       } else {
+        if(!st_crs(data)==st_crs(new1)){
+          new1 <- st_transform(new1, st_crs(data))
+          logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
+        }
+        if(!st_crs(data)==st_crs(new2)){
+          new2 <- st_transform(new2, st_crs(data))
+          logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
+        }
         result <- mt_stack(data,new1,new2,.track_combine="rename")
         logger.info("New data uploaded from rds and csv files. Both data sets are appended to input data.") # works
       }   
