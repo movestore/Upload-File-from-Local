@@ -148,7 +148,7 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
           new1 <- st_transform(new1, st_crs(new2)) ## or the other way around, not sure which makes more sense...
           logger.info(paste0("The two data sets to combine have a different projection. One has been re-projected, and now the combined data set is in the '",st_crs(new2)$input,"' projection."))
         }
-        result <- mt_stack(new1,new2,.track_combine="rename")
+        result <- mt_stack(new1,new2,.track_combine="rename",.track_id_repair="universal")
         logger.info("New data uploaded from rds and csv files, no previous input data. Both data sets are merged.") # works
       }   
     }
@@ -162,7 +162,7 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
           new2 <- st_transform(new2, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
         }
-        result <- mt_stack(data,new2,.track_combine="rename")
+        result <- mt_stack(data,new2,.track_combine="rename",.track_id_repair="universal")
         logger.info("New data uploaded from csv file and appended to input data.") # works
       }
     } else {
@@ -171,7 +171,7 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
           new1 <- st_transform(new1, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
         }
-        result <- mt_stack(data,new1,.track_combine="rename")
+        result <- mt_stack(data,new1,.track_combine="rename",.track_id_repair="universal")
         logger.info("New data uploaded from rds file and appended to input data.") # works for move1 and move2
       } else {
         if(!st_crs(data)==st_crs(new1)){
@@ -182,7 +182,7 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
           new2 <- st_transform(new2, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
         }
-        result <- mt_stack(data,new1,new2,.track_combine="rename")
+        result <- mt_stack(data,new1,new2,.track_combine="rename",.track_id_repair="universal")
         logger.info("New data uploaded from rds and csv files. Both data sets are appended to input data.") # works
       }   
     }
