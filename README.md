@@ -8,11 +8,12 @@ Github repository: github.com/movestore/Upload-File-from-Local
 Upload tracking data as moveStack, move2 (rds) and/or csv table from your local system. The data will be transformed to a move2_loc object and appended to possible App input data.
 
 ## Documentation
-The App reads either an rds file and/or a csv table of tracking location data. The data are transformed to a move2_loc object so they can be analysed with many other Apps in a workflow. In case this App is not the start of a workflow and has input data, the input data and the newly read data are combined/stacked in a move2 object with renaming of all tracks if any track IDs are the same in both (or all) objects.
+The App reads either an rds file and/or a csv table of tracking location data. The data are transformed to a move2_loc object so they can be analysed with many other Apps in a workflow. In case this App is not the start of a workflow and has input data, the input data and the newly read data are combined/stacked in a move2 object with renaming of all tracks if any track IDs are the same in both (or all) objects. Records with the same track ID and timestamp can cause errors, for example by requiring an animal to be in two places at the same time, and therefore are not allowed. If present in the data set, the duplicated timestamp entry with least columns containing NAs is retained.
 
 If the data is a move2 object in an rds file, it is read in without any changes. If it is a moveStack (soon to be deprecated), then it is transformed to a move2 object.
 
 If the data is a csv table with location data, it is required that the data contain a column defining the track, one column to define the timestamp (see expected format in 'Settings') and two/three columns defining the location. The names of these columns have to be provided in the settings of the App. Furthermore, it is necessary to specify the crs/projection of the coordinate system the locations were taken in, the default is EPSG:4326. Finally, track attributes can be specified, that will then be saved separately in the move2 object, avoiding a lot of duplicated data.
+
 
 It is possible to upload simultaneously a csv and an rds file, these will be than combined into one object.
 
@@ -40,8 +41,6 @@ none
 `Names of the longitude and latitute columns` (coords): Names of the two (or three) coordinate columns in your data for correct transformation to a move2 object. The order must be x/longitude followed by y/latitute and optionally z/height. The names must be separated with comma. Default: "location-long, location-lat".
 
 `Coordinate reference system` (crss): Coordinate reference system/ projection to useas a valid numeric EPSG value. For more info see https://epsg.io/ and https://spatialreference.org/. Default 4326 (EPSG:4326, standard longitude/latitude)
-
-`Duplicate Handling` (duplicates_handling): Records with the same track ID and timestamp can cause errors, for example by requiring an animal to be in two places at the same time, and therefore are not allowed. If present in the data set, the duplicated timestamp entry with least columns containing NAs is retained. As thereafter there can still exist duplicates these will be removed based on the selected option (1) The first location of each set of duplicates, (2) The last location of each set of duplicates or (3) A randomly selected location from set of duplicates. Default: (1) The first location of each set of duplicates.
 
 `Tracking data in csv format` (csvFile_ID): Local, comma-separated csv file of tracking data to be uploaded, called 'data.csv' (this file name is compulsory). Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.
 

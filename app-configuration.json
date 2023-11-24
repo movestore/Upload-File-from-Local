@@ -3,6 +3,5 @@
     "track_id_col": "deployment.id",
     "track_attr": "track,tag.id",
     "coords": "location.long,location.lat",
-    "crss": 4326,
-    "duplicates_handling": "first"
+    "crss": 4326
 }
