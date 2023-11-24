@@ -36,25 +36,6 @@
       "type": "INTEGER"
     },
     {
-      "id": "duplicates_handling",
-      "name": "Duplicate Handling.",
-      "description": "Records with the same track ID and timestamp can cause errors in subsequent steps of your workflow, for example by requiring an animal to be in two places at the same time, and therefore are not allowed. If present in this data set, the duplicated timestamp entry with least columns containing NAs is retained. As thereafter there can still exist duplicates choose which one to retain:",
-      "type": "RADIOBUTTONS",
-       "defaultValue": "first",
-  "options": [{
-      "value": "first",
-      "displayText": "The first location of each set of duplicates"
-    },
-    {
-      "value": "last",
-      "displayText": "The last location of each set of duplicates"
-    },
-    {
-      "value": "sample",
-      "displayText": "A randomly selected location from set of duplicates"
-    }]
-    },
-	    {
       "id": "csvFile_ID",
       "name": "Tracking data in csv format.",
       "description": "Please upload tracking data in a comma-separated csv file, called 'data.csv'. Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.",
