@@ -17,7 +17,7 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
   logger.info(paste("Reading file", fileName1,"of size:", file.info(fileName1)$size,"."))
   new1 <- readRDS(fileName1)
   
-  if(is.na(crs(fishers))){
+  if(is.na(crs(new1))){
     new1 <- NULL
     logger.info("The uploaded rds file does not contain coordinate reference system information. This data set cannot be uploaded")
   }
