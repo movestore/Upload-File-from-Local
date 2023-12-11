@@ -1,7 +1,8 @@
 {
+    "fileName1": "data2.csv"
     "time_col": "timestamp",
-    "track_id_col": "deployment.id",
-    "track_attr": "track,tag.id",
+    "track_id_col": "individual.local.identifier",
+    "track_attr": "event.id, comments, sequence.number, tag voltage,transmission.timestamp",
     "coords": "location.long,location.lat",
     "crss": 4326
 }
