@@ -162,6 +162,23 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
           new2 <- st_transform(new2, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
         }
+        
+        #drop units from intersecting columns that are not defined as time/loc/track_ID
+        defd <- c(time_col,track_id_col,trimws(strsplit(as.character(coords),",")[[1]]),"geometry")
+        overlp <- intersect(names(new2), names(data))
+        drp <- overlp[!is.element(overlp,defd)]
+        if (length(drp>0)) 
+        {
+          for (i in seq(along=drp)) 
+          {
+            dataunit <- eval(parse(text=paste("class(data$",drp[i],")=='units'",sep="")))
+            new2unit <- eval(parse(text=paste("class(new2$",drp[i],")=='units'",sep="")))
+            
+            if (dataunit & !new2unit) eval(parse(text=paste("data$",drp[i],"<- drop_units(data$",drp[i],")",sep=""))) #if only the variable in data has units, drop them
+            if (new2unit & !dataunit) eval(parse(text=paste("new2$",drp[i],"<- drop_units(new2$",drp[i],")",sep=""))) #if only the variable in new2 has units, drop them
+          }
+        }
+        
         result <- mt_stack(data,new2,.track_combine="rename",.track_id_repair="universal")
         logger.info("New data uploaded from csv file and appended to input data.") # works
       }
@@ -182,7 +199,26 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
           new2 <- st_transform(new2, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '",st_crs(data)$input,"' projection."))
         }
-        result <- mt_stack(data,new1,new2,.track_combine="rename",.track_id_repair="universal")
+        
+        datanew1 <- mt_stack(data,new1,.track_combine="rename",.track_id_repair="universal")
+        
+        #drop units from intersecting columns that are not defined as time/loc/track_ID
+        defd <- c(time_col,track_id_col,trimws(strsplit(as.character(coords),",")[[1]]),"geometry")
+        overlp <- intersect(names(new2), names(datanew1))
+        drp <- overlp[!is.element(overlp,defd)]
+        if (length(drp>0)) 
+        {
+          for (i in seq(along=drp)) 
+          {
+            datanew1unit <- eval(parse(text=paste("class(datanew1$",drp[i],")=='units'",sep="")))
+            new2unit <- eval(parse(text=paste("class(new2$",drp[i],")=='units'",sep="")))
+            
+            if (datanew1unit & !new2unit) eval(parse(text=paste("datanew1$",drp[i],"<- drop_units(datanew1$",drp[i],")",sep=""))) #if only the variable in datanew1 has units, drop them
+            if (new2unit & !datanew1unit) eval(parse(text=paste("new2$",drp[i],"<- drop_units(new2$",drp[i],")",sep=""))) #if only the variable in new2 has units, drop them
+          }
+        }
+        
+        result <- mt_stack(datanew1,new2,.track_combine="rename",.track_id_repair="universal")
         logger.info("New data uploaded from rds and csv files. Both data sets are appended to input data.") # works
       }   
     }
