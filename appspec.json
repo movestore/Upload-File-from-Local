@@ -54,7 +54,8 @@
       {"name": "move2"},
       {"name": "vroom"},
       {"name": "dplyr"},
-      {"name": "sf"}
+      {"name": "sf"},
+	  {"name": "units"}
     ]
   },
   "createsArtifacts": true,
