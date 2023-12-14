@@ -14,10 +14,8 @@ If the data is a move2 object in an rds file, it is read in without any changes.
 
 If the data is a csv table with location data, it is required that the data contain a column defining the track, one column to define the timestamp (see expected format in 'Settings') and two/three columns defining the location. The names of these columns have to be provided in the settings of the App. Furthermore, it is necessary to specify the crs/projection of the coordinate system the locations were taken in, the default is EPSG:4326. Finally, track attributes can be specified, that will then be saved separately in the move2 object, avoiding a lot of duplicated data.
 
+It is possible to upload simultaneously a csv and an rds file; these will be combined into one object.
 
-It is possible to upload simultaneously a csv and an rds file, these will be than combined into one object.
-
-...
 
 ### Input data
 none or 
@@ -48,7 +46,7 @@ none
 
 
 ### Most common errors
-none so far, please let me know if you encounter problems.
+none so far, please let me know if you re-encounter problems.
 
 ### Null or error handling
 
