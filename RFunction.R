@@ -165,7 +165,7 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
         }
         
         #drop units from intersecting columns that are not defined as time/loc/track_ID
-        defd <- c(time_col,track_id_col,trimws(strsplit(as.character(coords),",")[[1]]),"geometry")
+        defd <- c(time_col,track_id_col,trimws(strsplit(as.character(coords),",")[[1]]),attr(data, "sf_column"))
         overlp <- intersect(names(new2), names(data))
         drp <- overlp[!is.element(overlp,defd)]
         if (length(drp>0)) 
@@ -175,8 +175,16 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
             dataunit <- eval(parse(text=paste("class(data$",drp[i],")=='units'",sep="")))
             new2unit <- eval(parse(text=paste("class(new2$",drp[i],")=='units'",sep="")))
             
-            if (dataunit & !new2unit) eval(parse(text=paste("data$",drp[i],"<- drop_units(data$",drp[i],")",sep=""))) #if only the variable in data has units, drop them
-            if (new2unit & !dataunit) eval(parse(text=paste("new2$",drp[i],"<- drop_units(new2$",drp[i],")",sep=""))) #if only the variable in new2 has units, drop them
+            if (dataunit & !new2unit) 
+            {
+              eval(parse(text=paste("data$",drp[i],"<- drop_units(data$",drp[i],")",sep=""))) #if only the variable in data has units, drop them
+              logger.info(paste("Your uploaded file does not contain units for the attribute",drp[i],". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
+            }
+            if (new2unit & !dataunit) 
+            {
+              eval(parse(text=paste("new2$",drp[i],"<- drop_units(new2$",drp[i],")",sep=""))) #if only the variable in new2 has units, drop them
+              logger.info(paste("Your App input data set does not contain units for the attribute",drp[i],". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
+            }
           }
         }
         
@@ -204,7 +212,7 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
         datanew1 <- mt_stack(data,new1,.track_combine="rename",.track_id_repair="universal")
         
         #drop units from intersecting columns that are not defined as time/loc/track_ID
-        defd <- c(time_col,track_id_col,trimws(strsplit(as.character(coords),",")[[1]]),"geometry")
+        defd <- c(time_col,track_id_col,trimws(strsplit(as.character(coords),",")[[1]]),attr(data, "sf_column"))
         overlp <- intersect(names(new2), names(datanew1))
         drp <- overlp[!is.element(overlp,defd)]
         if (length(drp>0)) 
@@ -214,8 +222,16 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
             datanew1unit <- eval(parse(text=paste("class(datanew1$",drp[i],")=='units'",sep="")))
             new2unit <- eval(parse(text=paste("class(new2$",drp[i],")=='units'",sep="")))
             
-            if (datanew1unit & !new2unit) eval(parse(text=paste("datanew1$",drp[i],"<- drop_units(datanew1$",drp[i],")",sep=""))) #if only the variable in datanew1 has units, drop them
-            if (new2unit & !datanew1unit) eval(parse(text=paste("new2$",drp[i],"<- drop_units(new2$",drp[i],")",sep=""))) #if only the variable in new2 has units, drop them
+            if (datanew1unit & !new2unit) 
+            {
+              eval(parse(text=paste("datanew1$",drp[i],"<- drop_units(datanew1$",drp[i],")",sep=""))) #if only the variable in datanew1 has units, drop them
+              logger.info(paste("Your uploaded csv file does not contain units for the attribute",drp[i],". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
+            }
+            if (new2unit & !datanew1unit) 
+            {
+              eval(parse(text=paste("new2$",drp[i],"<- drop_units(new2$",drp[i],")",sep=""))) #if only the variable in new2 has units, drop them
+              logger.info(paste("Your App input data set and/or uploaded rds file do not contain units for the attribute",drp[i],". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
+            }
           }
         }
         
