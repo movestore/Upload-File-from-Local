@@ -25,12 +25,37 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
   
   if(is.null(new1)){logger.info("No new rds data found.")
   } else { 
-    # if .rds is move2
+    ########################
+    ### if .rds is move2 ###
+    ########################
     if(any(class(new1)=="move2")){logger.info("Uploaded rds file containes a object of class move2")
+      
+      ### quality check:### cleaved, time ordered, non-emtpy, non-duplicated (dupl get removed further down in the code)
       ## remove empty locations
-      new1 <- new1[!sf::st_is_empty(new1),]  
+      if(!mt_has_no_empty_points(new1))
+      {
+        logger.info("Your data included empty points. We remove them for you.")
+        new1 <- dplyr::filter(new1, !sf::st_is_empty(new1))
+      }
+      ## for some reason, sometimes either lat or long are NA, as one still has a value it does not get removed with the excluding empty, here is what I came up with:
+      crds <- sf::st_coordinates(new1)
+      rem <- unique(c(which(is.na(crds[,1])),which(is.na(crds[,2]))))
+      if(length(rem)>0){
+        new1 <- new1[-rem,]
+      }
       if(nrow(new1)==0){logger.info("Your uploaded csv file does not contain any location data.")}
-      #### applying the same "cleaning" as for the move2 created from csv below, as someone can create a move2 in R and uploaded to moveapps. This object can contain empty coords, duplicates etc
+      
+      if(!mt_is_track_id_cleaved(new1))
+      {
+        logger.info("Your data set was not grouped by individual/track. We regroup it for you.")
+        new1 <- new1 |> dplyr::arrange(mt_track_id(new1))
+      }
+      
+      if (!mt_is_time_ordered(new1))
+      {
+        logger.info("Your data is not time ordered (within the individual/track groups). We reorder the measurements for you.")
+        new1 <- new1 |> dplyr::arrange(mt_track_id(new1),mt_time(new1))
+      }
       ## remove duplicated timestamps
       if(!mt_has_unique_location_time_records(new1)){
         n_dupl <- length(which(duplicated(paste(mt_track_id(new1),mt_time(new1)))))
@@ -38,15 +63,14 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
         ## this piece of code keeps the duplicated entry with least number of columns with NA values
         new1 <- new1 %>%
           mutate(n_na = rowSums(is.na(pick(everything())))) %>%
-          arrange(n_na) %>%
+          arrange(mt_track_id(.), mt_time(.),n_na) %>%
           mt_filter_unique(criterion='first') # this always needs to be "first" because the duplicates get ordered according to the number of columns with NA. 
       }
-      
-      ## ensure timestamps are ordered within tracks
-      new1 <- dplyr::arrange(new1, mt_track_id(new1), mt_time(new1)) 
     }
     
-    # if move2 object - fine, else transform moveStack to move2
+    #################################################################
+    ### if move2 object - fine, else transform moveStack to move2 ###
+    #################################################################
     if(any(class(new1)=="MoveStack")){
       new1 <- mt_as_move2(new1)
       logger.info("Uploaded rds file containes a object of class moveStack that is transformed to move2.")
@@ -61,8 +85,9 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
     mt_track_id(new1) <- make.names(mt_track_id(new1),allow_=TRUE)
   }
   
-  
-  # csv file
+  ################
+  ### csv file ###
+  ################
   fileName2 <- paste0(getAppFilePath("csvFile_ID"), "data.csv") #default is NULL
   logger.info(paste("Reading file", fileName2,"of size:", file.info(fileName2)$size,"."))
   test <- readLines(fileName2) #to check if it is empty, only continue if not
@@ -96,6 +121,10 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
       df2 <- dplyr::filter(df2,!is.na(df2[[track_id_col]])) # if there is a NA in the track_id col, mt_as_move2() gives error
       n.trcolna <- length(which(is.na(df2[[track_id_col]])))
       if (n.trcolna>0) logger.info(paste("Your tracks contained",ntrcolna,"locations with unspecified track ID. They have been removed."))
+      # if track_id column is different to classes  integer, integer64, character or factor, transform it to a factor
+      if(!class(df2[[track_id_col]])%in%c("integer", "integer64", "character" ,"factor")){
+        df2[[track_id_col]] <- as.factor(df2[[track_id_col]])
+      }
       new2 <- mt_as_move2(df2,
                           time_column=time_col,
                           track_id_column=track_id_col,
@@ -103,10 +132,33 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
                           coords=coo,
                           crs=crss,
                           na.fail=FALSE)
+      
+      ## quality check:## cleaved, time ordered, non-emtpy, non-duplicated (dupl get removed further down in the code)
       ## remove empty locations
-      new2 <- new2[!sf::st_is_empty(new2),]  
+      if(!mt_has_no_empty_points(new2))
+      {
+        logger.info("Your data included empty points. We remove them for you.")
+        new2 <- dplyr::filter(new2, !sf::st_is_empty(new2))
+      }
+      ## for some reason, sometimes either lat or long are NA, as one still has a value it does not get removed with the excluding empty, here is what I came up with:
+      crds <- sf::st_coordinates(new2)
+      rem <- unique(c(which(is.na(crds[,1])),which(is.na(crds[,2]))))
+      if(length(rem)>0){
+        new2 <- new2[-rem,]
+      }
       if(nrow(new2)==0){logger.info("Your uploaded csv file does not contain any location data.")}
       
+      if(!mt_is_track_id_cleaved(new2))
+      {
+        logger.info("Your data set was not grouped by individual/track. We regroup it for you.")
+        new2 <- new2 |> dplyr::arrange(mt_track_id(new2))
+      }
+      
+      if (!mt_is_time_ordered(new2))
+      {
+        logger.info("Your data is not time ordered (within the individual/track groups). We reorder the measurements for you.")
+        new2 <- new2 |> dplyr::arrange(mt_track_id(new2),mt_time(new2))
+      }
       ## remove duplicated timestamps
       if(!mt_has_unique_location_time_records(new2)){
         n_dupl <- length(which(duplicated(paste(mt_track_id(new2),mt_time(new2)))))
@@ -114,12 +166,9 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
         ## this piece of code keeps the duplicated entry with least number of columns with NA values
         new2 <- new2 %>%
           mutate(n_na = rowSums(is.na(pick(everything())))) %>%
-          arrange(n_na) %>%
+          arrange(mt_track_id(.), mt_time(.),n_na) %>%
           mt_filter_unique(criterion='first') # this always needs to be "first" because the duplicates get ordered according to the number of columns with NA. 
       }
-      
-      ## ensure timestamps are ordered within tracks
-      new2 <- dplyr::arrange(new2, mt_track_id(new2), mt_time(new2)) 
       
       # make names for new2
       names(new2) <- make.names(names(new2),allow_=TRUE)
@@ -129,6 +178,9 @@ rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individua
   
   if(is.null(df2)) new2 <- NULL else if (nrow(new2)==0) new2 <- NULL
   
+  ######################
+  ## joining objects ###
+  ######################
   
   # here is where the object data is needed
   if (!exists("data") | is.null(data) | length(data)==0){ #here need to check what is possible (Clemens)
