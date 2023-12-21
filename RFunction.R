@@ -10,8 +10,16 @@ library('units')
 # The expected timestamp format is 'yyyy-mm-dd HH:MM:SS' and in UTC timezone
 # The expected projection is a valid numeric EPSG value. E.g 4326 (EPSG:4326 is lat/lon)
 
+########
+## ToDo: check if uploaded file is .rds of csv, as in the cloud-upload-app, this will also give freedom of name of file
+#######
 
-rFunction  <-  function(data=NULL, time_col="timestamp", track_id_col="individual-local-identifier", track_attr="",coords="location-long,location-lat",crss=4326, ...){ 
+rFunction  <-  function(data=NULL, 
+                        time_col="timestamp", 
+                        track_id_col="individual-local-identifier", 
+                        track_attr="",
+                        coords="location-long,location-lat",
+                        crss=4326, ...){ 
   
   # rds file # works :)
   fileName1 <- paste0(getAppFilePath("rdsFile_ID"), "data.rds") #default is NULL
