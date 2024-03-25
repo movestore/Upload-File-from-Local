@@ -12,6 +12,7 @@ library('units')
 
 ########
 ## ToDo: check if uploaded file is .rds of csv, as in the cloud-upload-app, this will also give freedom of name of file
+## ToDo: find correct way of doing this: names(new1) <- make.names(names(new1),allow_=TRUE)
 #######
 
 rFunction  <-  function(data=NULL, 
@@ -89,7 +90,7 @@ rFunction  <-  function(data=NULL,
   }
   # make names for new1
   if(!is.null(new1)){
-    names(new1) <- make.names(names(new1),allow_=TRUE)
+    # names(new1) <- make.names(names(new1),allow_=TRUE)
     mt_track_id(new1) <- make.names(mt_track_id(new1),allow_=TRUE)
   }
   
@@ -179,7 +180,7 @@ rFunction  <-  function(data=NULL,
       }
       
       # make names for new2
-      names(new2) <- make.names(names(new2),allow_=TRUE)
+      # names(new2) <- make.names(names(new2),allow_=TRUE)
       mt_track_id(new2) <- make.names(mt_track_id(new2),allow_=TRUE)
     }
   }
