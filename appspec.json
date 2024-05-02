@@ -23,7 +23,7 @@
     },
 	    {
       "id": "coords",
-      "name": "Names of the longigute and latitute columns.",
+      "name": "Names of the longitude and latitute columns.",
       "description": "Provide the names of the two (or three) coordinate columns in your data for correct transformation to a move2 object. The order must be x/longitude followed by y/latitute and optionally z/height. Take care to enter the attributes' names in the correct spelling. The names must be separated with comma.",
       "defaultValue": "location-long, location-lat",
       "type": "STRING"
@@ -38,13 +38,13 @@
     {
       "id": "csvFile_ID",
       "name": "Tracking data in csv format.",
-      "description": "Please upload tracking data in a comma-separated csv file, called 'data.csv'. Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.",
+      "description": "Please upload tracking data in a comma-separated csv file. Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.",
       "type": "LOCAL_FILE"
     },
 	    {
       "id": "rdsFile_ID",
       "name": "Tracking data in rds format.",
-      "description": "Please upload moveStack or move2 object tracking data in the strongly compressed rds file type, called 'data.rds'. Attribute names as indicated above will not be used, but taken from the file.",
+      "description": "Please upload moveStack or move2 object tracking data in the strongly compressed rds file type. Attribute names as indicated above will not be used, but taken from the file.",
       "type": "LOCAL_FILE"
     }
   ],
@@ -54,6 +54,7 @@
       {"name": "move2"},
       {"name": "vroom"},
       {"name": "dplyr"},
+      {"name": "tidyr"},
       {"name": "sf"},
 	  {"name": "units"}
     ]

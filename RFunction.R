@@ -2,6 +2,7 @@ library("move2")
 library("move")
 library("vroom")
 library("dplyr")
+library("tidyr")
 library("sf")
 library("units")
 
@@ -12,100 +13,129 @@ library("units")
 
 ########
 ## ToDo: check if uploaded file is .rds of csv, as in the cloud-upload-app, this will also give freedom of name of file
-## ToDo: find correct way of doing this: names(new1) <- make.names(names(new1),allow_=TRUE)
+## ToDo: find correct way of doing this: names(rds_data) <- make.names(names(rds_data),allow_=TRUE)
 #######
 
-rFunction <- function(data = NULL,
-                      time_col = "timestamp",
-                      track_id_col = "individual-local-identifier",
-                      track_attr = "",
-                      coords = "location-long,location-lat",
-                      crss = 4326, ...) {
-  # rds file # works :)
-  fileName1 <- paste0(getAppFilePath("rdsFile_ID"), "data.rds") # default is NULL
-  logger.info(paste("Reading file", fileName1, "of size:", file.info(fileName1)$size, "."))
-  new1 <- readRDS(fileName1)
+UNSTANDARDIZED_COLS <- c("tag.local.identifier", "sex")
 
-  if (is.na(crs(new1))) {
-    new1 <- NULL
-    logger.info("The uploaded rds file does not contain coordinate reference system information. This data set cannot be uploaded")
-  }
-
-  if (is.null(new1)) {
-    logger.info("No new rds data found.")
+get_most_recent_upload <- function(file_type) {
+  if (file_type == "rds") {
+    pattern <- "\\.rds$"
+    root_path <- getAppFilePath("rdsFile_ID")
   } else {
-    ########################
-    ### if .rds is move2 ###
-    ########################
-    if (any(class(new1) == "move2")) {
-      logger.info("Uploaded rds file containes a object of class move2")
-
-      ### quality check:### cleaved, time ordered, non-emtpy, non-duplicated (dupl get removed further down in the code)
-      ## remove empty locations
-      if (!mt_has_no_empty_points(new1)) {
-        logger.info("Your data included empty points. We remove them for you.")
-        new1 <- dplyr::filter(new1, !sf::st_is_empty(new1))
-      }
-      ## for some reason, sometimes either lat or long are NA, as one still has a value it does not get removed with the excluding empty, here is what I came up with:
-      crds <- sf::st_coordinates(new1)
-      rem <- unique(c(which(is.na(crds[, 1])), which(is.na(crds[, 2]))))
-      if (length(rem) > 0) {
-        new1 <- new1[-rem, ]
-      }
-      if (nrow(new1) == 0) {
-        logger.info("Your uploaded csv file does not contain any location data.")
-      }
-
-      if (!mt_is_track_id_cleaved(new1)) {
-        logger.info("Your data set was not grouped by individual/track. We regroup it for you.")
-        new1 <- new1 |> dplyr::arrange(mt_track_id(new1))
-      }
-
-      if (!mt_is_time_ordered(new1)) {
-        logger.info("Your data is not time ordered (within the individual/track groups). We reorder the measurements for you.")
-        new1 <- new1 |> dplyr::arrange(mt_track_id(new1), mt_time(new1))
-      }
-      ## remove duplicated timestamps
-      if (!mt_has_unique_location_time_records(new1)) {
-        n_dupl <- length(which(duplicated(paste(mt_track_id(new1), mt_time(new1)))))
-        logger.info(paste("Your data has", n_dupl, "duplicated location-time records. We removed here those with less info and then select the first if still duplicated."))
-        ## this piece of code keeps the duplicated entry with least number of columns with NA values
-        new1 <- new1 %>%
-          mutate(n_na = rowSums(is.na(pick(everything())))) %>%
-          arrange(mt_track_id(.), mt_time(.), n_na) %>%
-          mt_filter_unique(criterion = "first") # this always needs to be "first" because the duplicates get ordered according to the number of columns with NA.
-      }
-    }
-
-    #################################################################
-    ### if move2 object - fine, else transform moveStack to move2 ###
-    #################################################################
-    if (any(class(new1) == "MoveStack")) {
-      new1 <- mt_as_move2(new1)
-      logger.info("Uploaded rds file containes a object of class moveStack that is transformed to move2.")
-    }
-    if (!any(class(new1) %in% c("move2", "MoveStack"))) {
-      new1 <- NULL
-      logger.info("Uploaded rds file contains data with unexpected class, please ensure that the file contains a object of class 'move2' or 'MoveStack'.")
-    }
-  }
-  # make names for new1
-  if (!is.null(new1)) {
-    # names(new1) <- make.names(names(new1),allow_=TRUE)
-    mt_track_id(new1) <- make.names(mt_track_id(new1), allow_ = TRUE)
+    pattern <- "\\.csv$"
+    root_path <- getAppFilePath("csvFile_ID")
   }
 
-  ################
-  ### csv file ###
-  ################
-  fileName2 <- paste0(getAppFilePath("csvFile_ID"), "data.csv") # default is NULL
-  logger.info(paste("Reading file", fileName2, "of size:", file.info(fileName2)$size, "."))
-  test <- readLines(fileName2) # to check if it is empty, only continue if not
+  uploaded_files_df <- file.info(list.files(
+    pattern = pattern,
+    path = gsub("/$", "", root_path),
+    full.names = TRUE
+  ))
+
+  file_path <- uploaded_files_df |>
+    arrange(mtime) |>
+    rownames() |>
+    last()
+
+  return(file_path)
+}
+
+process_rds_file <- function(rds_file) {
+  if (is.na(rds_file)) {
+    logger.info("No new rds file uploaded.")
+    return()
+  }
+
+  logger.info(paste("Reading file", rds_file, "of size:", file.info(rds_file)$size, "."))
+  rds_data <- readRDS(rds_file)
+
+  if (is.na(crs(rds_data))) {
+    rds_data <- NULL
+    logger.info("The uploaded rds file does not contain coordinate reference system information. This data set cannot be uploaded")
+    return()
+  }
+
+  ########################
+  ### if .rds is move2 ###
+  ########################
+  if (any(class(rds_data) == "move2")) {
+    logger.info("Uploaded rds file containes a object of class move2")
+
+    ### quality check:### cleaved, time ordered, non-emtpy, non-duplicated (dupl get removed further down in the code)
+    ## remove empty locations
+    if (!mt_has_no_empty_points(rds_data)) {
+      logger.info("Your data included empty points. We remove them for you.")
+      rds_data <- dplyr::filter(rds_data, !sf::st_is_empty(rds_data))
+    }
+    ## for some reason, sometimes either lat or long are NA, as one still has a value it does not get removed with the excluding empty, here is what I came up with:
+    crds <- sf::st_coordinates(rds_data)
+    rem <- unique(c(which(is.na(crds[, 1])), which(is.na(crds[, 2]))))
+    if (length(rem) > 0) {
+      rds_data <- rds_data[-rem, ]
+    }
+    if (nrow(rds_data) == 0) {
+      logger.info("Your uploaded csv file does not contain any location data.")
+    }
+
+    if (!mt_is_track_id_cleaved(rds_data)) {
+      logger.info("Your data set was not grouped by individual/track. We regroup it for you.")
+      rds_data <- rds_data |> dplyr::arrange(mt_track_id(rds_data))
+    }
+
+    if (!mt_is_time_ordered(rds_data)) {
+      logger.info("Your data is not time ordered (within the individual/track groups). We reorder the measurements for you.")
+      rds_data <- rds_data |> dplyr::arrange(mt_track_id(rds_data), mt_time(rds_data))
+    }
+    ## remove duplicated timestamps
+    if (!mt_has_unique_location_time_records(rds_data)) {
+      n_dupl <- length(which(duplicated(paste(mt_track_id(rds_data), mt_time(rds_data)))))
+      logger.info(paste("Your data has", n_dupl, "duplicated location-time records. We removed here those with less info and then select the first if still duplicated."))
+      ## this piece of code keeps the duplicated entry with least number of columns with NA values
+      rds_data <- rds_data %>%
+        mutate(n_na = rowSums(is.na(pick(everything())))) %>%
+        arrange(mt_track_id(.), mt_time(.), n_na) %>%
+        mt_filter_unique(criterion = "first") # this always needs to be "first" because the duplicates get ordered according to the number of columns with NA.
+    }
+  }
+
+  #################################################################
+  ### if move2 object - fine, else transform moveStack to move2 ###
+  #################################################################
+  if (any(class(rds_data) == "MoveStack")) {
+    rds_data <- mt_as_move2(rds_data)
+    logger.info("Uploaded rds file containes a object of class moveStack that is transformed to move2.")
+  }
+
+  if (!any(class(rds_data) %in% c("move2", "MoveStack"))) {
+    rds_data <- NULL
+    logger.info("Uploaded rds file contains data with unexpected class, please ensure that the file contains a object of class 'move2' or 'MoveStack'.")
+  }
+
+
+  # make names for rds_data
+  if (!is.null(rds_data)) {
+    # names(rds_data) <- make.names(names(rds_data),allow_=TRUE)
+    mt_track_id(rds_data) <- make.names(mt_track_id(rds_data), allow_ = TRUE)
+  }
+
+  return(rds_data)
+}
+
+process_csv_file <- function(csv_file, coords, track_attr, time_col, track_id_col, crss) {
+  if (is.na(csv_file)) {
+    logger.info("No new csv file uploaded.")
+    return(NULL)
+  }
+
+  logger.info(paste("Reading file", csv_file, "of size:", file.info(csv_file)$size, "."))
+  test <- readLines(csv_file) # to check if it is empty, only continue if not
+
   if (test[1] == "") {
     df2 <- NULL
     logger.info("No new csv data found. The settings of the App are not used.")
   } else {
-    df2 <- vroom::vroom(fileName2, delim = ",") # alternative to read.csv, takes care of timestamps, default timezome is UTC, problems with empty table avoided above
+    df2 <- vroom::vroom(csv_file, delim = ",") # alternative to read.csv, takes care of timestamps, default timezome is UTC, problems with empty table avoided above
     if (length(grep(",", coords)) %in% c(1, 2)) {
       coo <- trimws(strsplit(as.character(coords), ",")[[1]])
       logger.info(paste("You have defined as coordinate columns:", coords))
@@ -127,19 +157,24 @@ rFunction <- function(data = NULL,
       } else {
         tr_attr <- track_attr
       }
-
+      
       # transform data.frame to move2 object
-      df2 <- dplyr::filter(df2, !is.na(df2[[track_id_col]])) # if there is a NA in the track_id col, mt_as_move2() gives error
+      df2 <- df2 |>
+        tidyr::drop_na(!!track_id_col) |> # if there is a NA in the track_id col, mt_as_move2() gives error
+        mutate_at(vars(one_of(UNSTANDARDIZED_COLS)), as.character)
+     
       n.trcolna <- length(which(is.na(df2[[track_id_col]])))
       if (n.trcolna > 0) logger.info(paste("Your tracks contained", ntrcolna, "locations with unspecified track ID. They have been removed."))
+      
       # if track_id column is different to classes  integer, integer64, character or factor, transform it to a factor
       if (!class(df2[[track_id_col]]) %in% c("integer", "integer64", "character", "factor")) {
         df2[[track_id_col]] <- as.factor(df2[[track_id_col]])
       }
-      new2 <- mt_as_move2(df2,
+
+      csv_data <- mt_as_move2(df2,
         time_column = time_col,
         track_id_column = track_id_col,
-        track_attributes = track_attr,
+        track_attributes = tr_attr,
         coords = coo,
         crs = crss,
         na.fail = FALSE
@@ -147,155 +182,181 @@ rFunction <- function(data = NULL,
 
       ## quality check:## cleaved, time ordered, non-emtpy, non-duplicated (dupl get removed further down in the code)
       ## remove empty locations
-      if (!mt_has_no_empty_points(new2)) {
+      if (!mt_has_no_empty_points(csv_data)) {
         logger.info("Your data included empty points. We remove them for you.")
-        new2 <- dplyr::filter(new2, !sf::st_is_empty(new2))
+        csv_data <- dplyr::filter(csv_data, !sf::st_is_empty(csv_data))
       }
       ## for some reason, sometimes either lat or long are NA, as one still has a value it does not get removed with the excluding empty, here is what I came up with:
-      crds <- sf::st_coordinates(new2)
+      crds <- sf::st_coordinates(csv_data)
       rem <- unique(c(which(is.na(crds[, 1])), which(is.na(crds[, 2]))))
       if (length(rem) > 0) {
-        new2 <- new2[-rem, ]
+        csv_data <- csv_data[-rem, ]
       }
-      if (nrow(new2) == 0) {
+      if (nrow(csv_data) == 0) {
         logger.info("Your uploaded csv file does not contain any location data.")
       }
 
-      if (!mt_is_track_id_cleaved(new2)) {
+      if (!mt_is_track_id_cleaved(csv_data)) {
         logger.info("Your data set was not grouped by individual/track. We regroup it for you.")
-        new2 <- new2 |> dplyr::arrange(mt_track_id(new2))
+        csv_data <- csv_data |> dplyr::arrange(mt_track_id(csv_data))
       }
 
-      if (!mt_is_time_ordered(new2)) {
+      if (!mt_is_time_ordered(csv_data)) {
         logger.info("Your data is not time ordered (within the individual/track groups). We reorder the measurements for you.")
-        new2 <- new2 |> dplyr::arrange(mt_track_id(new2), mt_time(new2))
+        csv_data <- csv_data |> dplyr::arrange(mt_track_id(csv_data), mt_time(csv_data))
       }
       ## remove duplicated timestamps
-      if (!mt_has_unique_location_time_records(new2)) {
-        n_dupl <- length(which(duplicated(paste(mt_track_id(new2), mt_time(new2)))))
+      if (!mt_has_unique_location_time_records(csv_data)) {
+        n_dupl <- length(which(duplicated(paste(mt_track_id(csv_data), mt_time(csv_data)))))
         logger.info(paste("Your data has", n_dupl, "duplicated location-time records. We removed here those with less info and then select the first if still duplicated."))
         ## this piece of code keeps the duplicated entry with least number of columns with NA values
-        new2 <- new2 %>%
+        csv_data <- csv_data %>%
           mutate(n_na = rowSums(is.na(pick(everything())))) %>%
           arrange(mt_track_id(.), mt_time(.), n_na) %>%
           mt_filter_unique(criterion = "first") # this always needs to be "first" because the duplicates get ordered according to the number of columns with NA.
       }
 
-      # make names for new2
-      # names(new2) <- make.names(names(new2),allow_=TRUE)
-      mt_track_id(new2) <- make.names(mt_track_id(new2), allow_ = TRUE)
+      # make names for csv_data
+      # names(csv_data) <- make.names(names(csv_data),allow_=TRUE)
+      mt_track_id(csv_data) <- make.names(mt_track_id(csv_data), allow_ = TRUE)
     }
   }
 
-  if (is.null(df2)) new2 <- NULL else if (nrow(new2) == 0) new2 <- NULL
+  if (is.null(df2)) csv_data <- NULL else if (nrow(csv_data) == 0) csv_data <- NULL
 
-  ######################
-  ## joining objects ###
-  ######################
+  return(csv_data)
+}
 
+join_data <- function(data, rds_data, csv_data, coords, time_col, track_id_col) {
   # here is where the object data is needed
+  
   if (!exists("data") | is.null(data) | length(data) == 0) { # here need to check what is possible (Clemens)
-    if (is.null(new1)) {
-      if (is.null(new2)) {
+    if (is.null(rds_data)) {
+      if (is.null(csv_data)) {
         result <- NULL
         logger.info("No new data in rds or csv files and no input data from previous App. Returning NULL.") # works
       } else {
-        result <- new2
+        result <- csv_data
         logger.info("New data uploaded from csv file, no previous input data.") # works
       }
     } else {
-      if (is.null(new2)) {
-        result <- new1
+      if (is.null(csv_data)) {
+        result <- rds_data
         logger.info("New data uploaded from rds file, no previous input data.") # works
       } else {
-        if (!st_crs(new1) == st_crs(new2)) {
-          new1 <- st_transform(new1, st_crs(new2)) ## or the other way around, not sure which makes more sense...
-          logger.info(paste0("The two data sets to combine have a different projection. One has been re-projected, and now the combined data set is in the '", st_crs(new2)$input, "' projection."))
+        if (!st_crs(rds_data) == st_crs(csv_data)) {
+          rds_data <- st_transform(rds_data, st_crs(csv_data)) ## or the other way around, not sure which makes more sense...
+          logger.info(paste0("The two data sets to combine have a different projection. One has been re-projected, and now the combined data set is in the '", st_crs(csv_data)$input, "' projection."))
         }
-        result <- mt_stack(new1, new2, .track_combine = "rename", .track_id_repair = "universal")
+        result <- mt_stack(rds_data, csv_data, .track_combine = "rename", .track_id_repair = "universal")
         logger.info("New data uploaded from rds and csv files, no previous input data. Both data sets are merged.") # works
       }
     }
   } else {
-    if (is.null(new1)) {
-      if (is.null(new2)) {
+    if (is.null(rds_data)) {
+      if (is.null(csv_data)) {
         result <- data
         logger.info("No new data in rds or csv files. Returning input data.") # works
       } else {
-        if (!st_crs(data) == st_crs(new2)) {
-          new2 <- st_transform(new2, st_crs(data))
+        if (!st_crs(data) == st_crs(csv_data)) {
+          csv_data <- st_transform(csv_data, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '", st_crs(data)$input, "' projection."))
         }
 
         # drop units from intersecting columns that are not defined as time/loc/track_ID
         defd <- c(time_col, track_id_col, trimws(strsplit(as.character(coords), ",")[[1]]), attr(data, "sf_column"))
-        overlp <- intersect(names(new2), names(data))
+        overlp <- intersect(names(csv_data), names(data))
         drp <- overlp[!is.element(overlp, defd)]
         if (length(drp > 0)) {
           for (i in seq(along = drp))
           {
             dataunit <- eval(parse(text = paste("class(data$", drp[i], ")=='units'", sep = "")))
-            new2unit <- eval(parse(text = paste("class(new2$", drp[i], ")=='units'", sep = "")))
+            csv_dataunit <- eval(parse(text = paste("class(csv_data$", drp[i], ")=='units'", sep = "")))
 
-            if (dataunit & !new2unit) {
+            if (dataunit & !csv_dataunit) {
               eval(parse(text = paste("data$", drp[i], "<- drop_units(data$", drp[i], ")", sep = ""))) # if only the variable in data has units, drop them
               logger.info(paste("Your uploaded file does not contain units for the attribute", drp[i], ". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
             }
-            if (new2unit & !dataunit) {
-              eval(parse(text = paste("new2$", drp[i], "<- drop_units(new2$", drp[i], ")", sep = ""))) # if only the variable in new2 has units, drop them
+            if (csv_dataunit & !dataunit) {
+              eval(parse(text = paste("csv_data$", drp[i], "<- drop_units(csv_data$", drp[i], ")", sep = ""))) # if only the variable in csv_data has units, drop them
               logger.info(paste("Your App input data set does not contain units for the attribute", drp[i], ". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
             }
           }
         }
 
-        result <- mt_stack(data, new2, .track_combine = "rename", .track_id_repair = "universal")
+        data <- data |>
+          mutate_at(vars(any_of(UNSTANDARDIZED_COLS)), as.character)
+        result <- mt_stack(data, csv_data, .track_combine = "rename", .track_id_repair = "universal")
         logger.info("New data uploaded from csv file and appended to input data.") # works
       }
     } else {
-      if (is.null(new2)) {
-        if (!st_crs(data) == st_crs(new1)) {
-          new1 <- st_transform(new1, st_crs(data))
+      if (is.null(csv_data)) {
+        if (!st_crs(data) == st_crs(rds_data)) {
+          rds_data <- st_transform(rds_data, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '", st_crs(data)$input, "' projection."))
         }
-        result <- mt_stack(data, new1, .track_combine = "rename", .track_id_repair = "universal")
+        result <- mt_stack(data, rds_data, .track_combine = "rename", .track_id_repair = "universal")
         logger.info("New data uploaded from rds file and appended to input data.") # works for move1 and move2
       } else {
-        if (!st_crs(data) == st_crs(new1)) {
-          new1 <- st_transform(new1, st_crs(data))
+        if (!st_crs(data) == st_crs(rds_data)) {
+          rds_data <- st_transform(rds_data, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '", st_crs(data)$input, "' projection."))
         }
-        if (!st_crs(data) == st_crs(new2)) {
-          new2 <- st_transform(new2, st_crs(data))
+        if (!st_crs(data) == st_crs(csv_data)) {
+          csv_data <- st_transform(csv_data, st_crs(data))
           logger.info(paste0("The new data sets to combine has a different projection. It has been re-projected, and now the combined data set is in the '", st_crs(data)$input, "' projection."))
         }
 
-        datanew1 <- mt_stack(data, new1, .track_combine = "rename", .track_id_repair = "universal")
+        data_rds_stack <- mt_stack(data, rds_data, .track_combine = "rename",
+                                   .track_id_repair = "universal")
 
         # drop units from intersecting columns that are not defined as time/loc/track_ID
         defd <- c(time_col, track_id_col, trimws(strsplit(as.character(coords), ",")[[1]]), attr(data, "sf_column"))
-        overlp <- intersect(names(new2), names(datanew1))
+        overlp <- intersect(names(csv_data), names(data_rds_stack))
         drp <- overlp[!is.element(overlp, defd)]
         if (length(drp > 0)) {
           for (i in seq(along = drp))
           {
-            datanew1unit <- eval(parse(text = paste("class(datanew1$", drp[i], ")=='units'", sep = "")))
-            new2unit <- eval(parse(text = paste("class(new2$", drp[i], ")=='units'", sep = "")))
+            data_rds_stackunit <- eval(parse(text = paste("class(data_rds_stack$", drp[i], ")=='units'", sep = "")))
+            csv_dataunit <- eval(parse(text = paste("class(csv_data$", drp[i], ")=='units'", sep = "")))
 
-            if (datanew1unit & !new2unit) {
-              eval(parse(text = paste("datanew1$", drp[i], "<- drop_units(datanew1$", drp[i], ")", sep = ""))) # if only the variable in datanew1 has units, drop them
+            if (data_rds_stackunit & !csv_dataunit) {
+              eval(parse(text = paste("data_rds_stack$", drp[i], "<- drop_units(data_rds_stack$", drp[i], ")", sep = ""))) # if only the variable in data_rds_stack has units, drop them
               logger.info(paste("Your uploaded csv file does not contain units for the attribute", drp[i], ". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
             }
-            if (new2unit & !datanew1unit) {
-              eval(parse(text = paste("new2$", drp[i], "<- drop_units(new2$", drp[i], ")", sep = ""))) # if only the variable in new2 has units, drop them
+            if (csv_dataunit & !data_rds_stackunit) {
+              eval(parse(text = paste("csv_data$", drp[i], "<- drop_units(csv_data$", drp[i], ")", sep = ""))) # if only the variable in csv_data has units, drop them
               logger.info(paste("Your App input data set and/or uploaded rds file do not contain units for the attribute", drp[i], ". Make sure that its units are the same in both data sets. The units will be dropped for further analysis steps."))
             }
           }
         }
 
-        result <- mt_stack(datanew1, new2, .track_combine = "rename", .track_id_repair = "universal")
+        data_rds_stack <- data_rds_stack |>
+          mutate_at(vars(one_of("tag.local.identifier")), as.character)
+        result <- mt_stack(data_rds_stack, csv_data, .track_combine = "rename", .track_id_repair = "universal")
         logger.info("New data uploaded from rds and csv files. Both data sets are appended to input data.") # works
       }
     }
   }
+  
+  return(result)
+}
+
+
+rFunction <- function(data = NULL,
+                      time_col = "timestamp",
+                      track_id_col = "individual-local-identifier",
+                      track_attr = "",
+                      coords = "location-long,location-lat",
+                      crss = 4326, ...) {
+  
+  rds_file <- get_most_recent_upload("rds")
+  rds_data <- process_rds_file(rds_file)
+
+  csv_file <- get_most_recent_upload(file_type = "csv")
+  csv_data <- process_csv_file(csv_file, coords, track_attr, time_col, track_id_col, crss)
+
+  result <- join_data(data, rds_data, csv_data, coords, time_col, track_id_col)
+
   return(result)
 }
