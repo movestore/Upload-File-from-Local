@@ -1,8 +1,7 @@
 {
-    "fileName1": "data2.csv",
     "time_col": "timestamp",
-    "track_id_col": "individual.local.identifier",
-    "track_attr": "event.id, comments, sequence.number, tag voltage,transmission.timestamp",
-    "coords": "location.long,location.lat",
+    "track_id_col": "individual-local-identifier",
+    "track_attr": "animal_life_stage, deployment_local_identifier, sensor_type_ids, group_id, mortality_type, sex",
+    "coords": "location-long, location-lat",
     "crss": 4326
 }
