@@ -10,7 +10,7 @@
     {
       "id": "track_id_col",
       "name": "Name of the track ID column",
-      "description": "Indicate which column to use as the track ID column for transforamtion of the table data to a move2 object. Take care to enter the name with the correct spelling. Beware of possible issues if you have reused tags on different animals or used several tags on the same animal. If this is the case, create a column before uploading the data with a unique identifier for each animal and tag combination, e.g. by creating a 'animalName_TagID' column.",
+      "description": "Indicate which column to use as the track ID column for transformation of the table data to a move2 object. Take care to enter the name with the correct spelling. Beware of possible issues if you have reused tags on different animals or used several tags on the same animal. If this is the case, create a column before uploading the data with a unique identifier for each animal and tag combination, e.g. by creating a 'animalName_TagID' column.",
       "defaultValue": "individual-local-identifier",
       "type": "STRING"
     },
@@ -23,8 +23,8 @@
     },
 	    {
       "id": "coords",
-      "name": "Names of the longigute and latitute columns.",
-      "description": "Provide the names of the two (or three) coordinate columns in your data for correct transformation to a move2 object. The order must be x/longitude followed by y/latitute and optionally z/height. Take care to enter the attributes' names in the correct spelling. The names must be separated with comma.",
+      "name": "Names of the longitude and latitude columns.",
+      "description": "Provide the names of the two (or three) coordinate columns in your data for correct transformation to a move2 object. The order must be x/longitude followed by y/latitude and optionally z/height. Take care to enter the attributes' names in the correct spelling. The names must be separated with comma.",
       "defaultValue": "location-long, location-lat",
       "type": "STRING"
     },

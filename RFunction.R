@@ -139,7 +139,7 @@ rFunction <- function(data = NULL,
       new2 <- mt_as_move2(df2,
         time_column = time_col,
         track_id_column = track_id_col,
-        track_attributes = track_attr,
+        track_attributes = tr_attr,
         coords = coo,
         crs = crss,
         na.fail = FALSE
