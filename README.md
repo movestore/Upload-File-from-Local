@@ -51,7 +51,7 @@ none
 
 
 ### Changes in output data
-The input data (if present) will be combined with the uploaded data by the user
+The input data (if present) will be combined with the uploaded data by the user.
 
 ### Most common errors
 

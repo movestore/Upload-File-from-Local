@@ -20,7 +20,7 @@ rFunction <- function(data = NULL,
                       track_id_col = "individual-local-identifier",
                       track_attr = "",
                       coords = "location-long,location-lat",
-                      crss = 4326, ...) {
+                      crss = "EPSG:4326", ...) {
   # rds file # works :)
   fileName1 <- getAuxiliaryFilePath("rdsFile_ID") # default is NULL
   logger.info(paste("Reading file", fileName1, "of size:", file.info(fileName1)$size, "."))
