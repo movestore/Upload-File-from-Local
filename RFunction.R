@@ -22,7 +22,7 @@ rFunction <- function(data = NULL,
                       coords = "location-long,location-lat",
                       crss = 4326, ...) {
   # rds file # works :)
-  fileName1 <- paste0(getAppFilePath("rdsFile_ID"), "data.rds") # default is NULL
+  fileName1 <- getAuxiliaryFilePath("rdsFile_ID") # default is NULL
   logger.info(paste("Reading file", fileName1, "of size:", file.info(fileName1)$size, "."))
   new1 <- readRDS(fileName1)
 
@@ -98,7 +98,7 @@ rFunction <- function(data = NULL,
   ################
   ### csv file ###
   ################
-  fileName2 <- paste0(getAppFilePath("csvFile_ID"), "data.csv") # default is NULL
+  fileName2 <- getAuxiliaryFilePath("csvFile_ID") # default is NULL
   logger.info(paste("Reading file", fileName2, "of size:", file.info(fileName2)$size, "."))
   test <- readLines(fileName2) # to check if it is empty, only continue if not
   if (test[1] == "") {

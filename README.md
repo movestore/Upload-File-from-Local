@@ -16,15 +16,20 @@ If the data is a csv table with location data, it is required that the data cont
 
 It is possible to upload simultaneously a csv and an rds file; these will be combined into one object.
 
+### Application scope
+#### Generality of App usability
+This App was developed for any taxonomic group. 
+
+#### Required data properties
+The App should work for any kind of (location) data.
+
 
 ### Input data
 none or 
-move2::move2_loc object
-
-(see settings for details of local files to upload)
+`move2::move2_loc`
 
 ### Output data
-move2::move2_loc object - being the input integrated with additionally uploaded data
+`move2::move2_loc`
 
 ### Artefacts
 none
@@ -40,18 +45,19 @@ none
 
 `Coordinate reference system` (crss): Coordinate reference system/ projection to useas a valid numeric EPSG value. For more info see https://epsg.io/ and https://spatialreference.org/. Default 4326 (EPSG:4326, standard longitude/latitude)
 
-`Tracking data in csv format` (csvFile_ID): Local, comma-separated csv file of tracking data to be uploaded, called 'data.csv' (this file name is compulsory). Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.
+`Tracking data in csv format` (csvFile_ID): Local, comma-separated csv file of tracking data to be uploaded. Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.
 
-`Tracking data in rds format` (rdsFile_ID): Local rds file of moveStack or move2 object of tracking data to upload, called 'data.rds' (this file name is compulsory). Attribute names as indicated above will not be used, but taken from the file.
+`Tracking data in rds format` (rdsFile_ID): Local rds file of moveStack or move2 object of tracking data to upload. Attribute names as indicated above will not be used, but taken from the file.
 
+
+### Changes in output data
+The input data (if present) will be combined with the uploaded data by the user
 
 ### Most common errors
-none so far, please let me know if you re-encounter problems.
+
 
 ### Null or error handling
-
 **Settings `column names`:** Take care that the spelling is correct, else the App will run into an error.
 
-**Settings `crss`:** If this is not a correct EPSG number, the App wil run into an error. The default of `4326` is the correct projection for data from Movebank.
+**Settings `crss`:** If this is not a correct EPSG number, the App will run into an error. The default of `EPSG:4326` is the correct projection for data from Movebank.
 
-**Settings `file upload`:** Take care to rename your files according to what the app expects (data.csv or data.rds), else the App cannot find the data and will not add the tracks. Instead the original input data or NULL will be returned.

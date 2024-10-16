@@ -38,14 +38,14 @@
     {
       "id": "csvFile_ID",
       "name": "Tracking data in csv format.",
-      "description": "Please upload tracking data in a comma-separated csv file, called 'data.csv' (other file names will lead to an error). Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.",
-      "type": "LOCAL_FILE"
+      "description": "Please upload tracking data in a comma-separated csv file. Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.",
+      "type": "USER_FILE"
     },
 	    {
       "id": "rdsFile_ID",
       "name": "Tracking data in rds format.",
-      "description": "Please upload moveStack or move2 object tracking data in the strongly compressed rds file type, called 'data.rds' (other file names will lead to an error). Attribute names as indicated above will not be used, but taken from the file.",
-      "type": "LOCAL_FILE"
+      "description": "Please upload moveStack or move2 object tracking data in the strongly compressed .rds file type. Attribute names as indicated above will not be used, but taken from the file.",
+      "type": "USER_FILE"
     }
   ],
   "dependencies": {
@@ -58,15 +58,14 @@
 	  {"name": "units"}
     ]
   },
-  "createsArtifacts": true,
   "providedAppFiles": [
     {
       "settingId": "csvFile_ID",
-      "from": "data/local_app_files/provided-app-files/csvFile_ID/"
+      "from": "data/auxiliary/user-files/provided-app-files/csvFile_ID/"
     },
 	{
       "settingId": "rdsFile_ID",
-      "from": "data/local_app_files/provided-app-files/rdsFile_ID/"
+      "from": "data/auxiliary/user-files/provided-app-files/rdsFile_ID/"
     }
   ],
   "license": {
@@ -104,9 +103,6 @@
       "affiliation": "Max-Planck-Institute of Animal Behavior",
       "affiliationRor": "https://ror.org/026stee22"
     }
-  ],
-  "documentation": {
-    "url": "https://github.com/movestore/Upload-File-from-Local/blob/master/README.md"
-  }
+  ]
 }
 
