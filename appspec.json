@@ -37,16 +37,10 @@
       "defaultValue": "EPSG:4978",
       "type": "STRING"
     },
-    {
-      "id": "csvFile_ID",
-      "name": "Tracking data in csv format.",
-      "description": "Please upload tracking data in a comma-separated csv file. Attribute names of key properties can be indicated in the settings above. Please take care to adapt them.",
-      "type": "USER_FILE"
-    },
 	    {
-      "id": "rdsFile_ID",
-      "name": "Tracking data in rds format.",
-      "description": "Please upload moveStack or move2 object tracking data in the strongly compressed .rds file type. Attribute names as indicated above will not be used, but taken from the file.",
+      "id": "File_ID",
+      "name": "Tracking data in csv or rds format.",
+      "description": "Two options: (1) upload tracking data in a comma-separated '.csv' file. Attribute names of key properties can be indicated in the settings above. Please take care to adapt them. (2) upload move2 or moveStack object tracking data as a '.rds' file. Attribute names as indicated above will not be used, but taken from the rds file.",
       "type": "USER_FILE"
     }
   ],
