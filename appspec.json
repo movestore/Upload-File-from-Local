@@ -54,16 +54,6 @@
 	  {"name": "units"}
     ]
   },
-  "providedAppFiles": [
-    {
-      "settingId": "csvFile_ID",
-      "from": "data/auxiliary/user-files/provided-app-files/csvFile_ID/"
-    },
-	{
-      "settingId": "rdsFile_ID",
-      "from": "data/auxiliary/user-files/provided-app-files/rdsFile_ID/"
-    }
-  ],
   "license": {
     "key": "MIT"
   },
