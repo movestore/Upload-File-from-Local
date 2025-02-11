@@ -51,7 +51,8 @@
       {"name": "vroom"},
       {"name": "dplyr"},
       {"name": "sf"},
-	  {"name": "units"}
+	  {"name": "units"},
+	  {"name": "bit64"}
     ]
   },
   "license": {

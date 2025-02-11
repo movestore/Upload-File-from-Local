@@ -4,6 +4,7 @@ library("vroom")
 library("dplyr")
 library("sf")
 library("units")
+library("bit64")
 
 # vroom reads in the data as is, csv from MB is with "-" in column names
 # the csv file is expected to be comma delimited
@@ -146,6 +147,7 @@ rFunction <- function(data = NULL,
         if (!class(df2[[track_id_col]]) %in% c("integer", "integer64", "character", "factor")) {
           df2[[track_id_col]] <- as.factor(df2[[track_id_col]])
         }
+        
         newCSVmv <- mt_as_move2(df2,
                                 time_column = time_col,
                                 track_id_column = track_id_col,
