@@ -34,7 +34,7 @@
       "id": "crss",
       "name": "Coordinate reference system.",
       "description": "Enter the coordinate reference system/ projection to use as a valid EPSG value. For more info see https://epsg.io/ and https://spatialreference.org/.",
-      "defaultValue": "EPSG:4978",
+      "defaultValue": "EPSG:4326",
       "type": "STRING"
     },
 	    {
